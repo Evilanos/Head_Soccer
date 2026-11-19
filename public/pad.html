@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b1630">
+<title>Head Soccer – Controller</title>
+<style>
+  :root{--team:#6b7a99;--team2:#3b4766}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;background:#0b1630;color:#fff;font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none}
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;
+          background:radial-gradient(ellipse at 50% 0%,#1d3a7a,#0b1630 70%)}
+  .hidden{display:none!important}
+  h1{margin:0;font-size:38px;letter-spacing:.06em;font-weight:900;text-transform:uppercase}
+  h1 span{color:#ffd23f}
+  label{font-size:12px;letter-spacing:.12em;color:#9fb6e6;text-transform:uppercase;align-self:flex-start;margin-bottom:-8px}
+  .form{display:flex;flex-direction:column;gap:14px;width:min(360px,100%)}
+  input{width:100%;padding:14px;border-radius:14px;border:2px solid #ffffff22;background:#ffffff10;color:#fff;font-size:22px;font-weight:700;text-align:center;outline:none;user-select:text;-webkit-user-select:text;touch-action:auto}
+  input:focus{border-color:#6ea8ff}
+  #code{letter-spacing:.35em;text-transform:uppercase;font-size:30px}
+  .go{padding:16px;border-radius:16px;border:0;font-size:22px;font-weight:900;letter-spacing:.08em;color:#2a1a00;background:linear-gradient(180deg,#ffe36a,#ffb21f);box-shadow:0 5px 0 #b86f00;width:100%}
+  .go:active{transform:translateY(3px);box-shadow:0 2px 0 #b86f00}
+  .go.ghost{background:#ffffff1c;color:#fff;box-shadow:0 5px 0 #0006}
+  .err{color:#ff9a9a;font-size:14px;min-height:18px;text-align:center}
+
+  /* ---- controller ---- */
+  #pad{position:fixed;inset:0;background:
+        radial-gradient(ellipse at 50% 120%,color-mix(in srgb,var(--team) 45%,transparent),transparent 65%),#0b1630;
+       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  #top{position:absolute;left:0;right:0;top:0;height:54px;display:flex;align-items:center;gap:10px;padding:8px 14px;background:linear-gradient(180deg,#000a,#0000)}
+  #dot{width:10px;height:10px;border-radius:50%;background:#ff6b6b;flex:none}#dot.ok{background:#4ade80}
+  #who{font-weight:800;font-size:15px;padding:4px 12px;border-radius:99px;background:var(--team);white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis}
+  #score{margin:0 auto;font-weight:900;font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+  #score small{font-size:13px;color:#b9cdf5;font-weight:700;margin-left:10px}
+  .tb{width:38px;height:38px;border-radius:11px;border:1px solid #fff3;background:#0006;color:#fff;font-size:17px;touch-action:manipulation}
+  #msg{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;font-weight:900;font-size:clamp(22px,6vw,40px);text-shadow:0 3px 0 #000a;pointer-events:none;width:60%}
+  #msg small{display:block;font-size:14px;font-weight:600;color:#b9cdf5;margin-top:6px;text-shadow:none}
+  #center{position:absolute;left:50%;bottom:20%;transform:translateX(-50%);display:flex;gap:12px;z-index:3}
+  #center .go{width:auto;padding:14px 26px;font-size:18px}
+
+  .zone{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));touch-action:none}
+  #dpad{left:max(16px,env(safe-area-inset-left));width:min(46vw,380px);height:min(38vh,170px);display:flex;border-radius:90px;background:#ffffff10;border:2px solid #ffffff22;overflow:hidden}
+  #dpad div{flex:1;display:grid;place-items:center;font-size:clamp(34px,9vh,60px);color:#fff9;transition:.06s}
+  #dpad div.on{background:color-mix(in srgb,var(--team) 70%,transparent);color:#fff}
+  #dpad div+div{border-left:2px solid #ffffff1a}
+  #acts{right:max(16px,env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:min(2.5vh,14px)}
+  #acts .row{display:flex;gap:min(3vw,20px);align-items:flex-end}
+  .ab{width:min(24vh,150px);height:min(24vh,150px);border-radius:50%;border:3px solid #fff4;display:grid;place-items:center;font-weight:900;font-size:clamp(13px,3.4vh,20px);letter-spacing:.06em;
+      touch-action:none;transition:transform .05s;text-align:center;line-height:1.1}
+  .ab span{display:block;font-size:clamp(28px,8vh,52px);margin-bottom:2px}
+  .ab.on{transform:scale(.92);filter:brightness(1.35)}
+  #bj{background:radial-gradient(circle at 35% 30%,#7fe0a0,#1f9d55);margin-bottom:min(8vh,50px)}
+  #bs{--kc:#ff7a1a;--p:0;position:relative;width:min(21vh,120px);height:min(21vh,120px);margin-right:min(3vw,22px);border:0;
+      background:conic-gradient(var(--kc) calc(var(--p)*1%),#ffffff26 0)}
+  #bs::before{content:"";position:absolute;inset:7px;border-radius:50%;background:#101a36}
+  #bs>div{position:relative;z-index:1}
+  #bs span{font-size:clamp(24px,7vh,44px)}
+  #bs.ready{animation:pulse .7s ease-in-out infinite;box-shadow:0 0 28px var(--kc)}
+  #bs.ready::before{background:color-mix(in srgb,var(--kc) 35%,#101a36)}
+  @keyframes pulse{50%{transform:scale(1.07)}}
+  #pad.frozen::after{content:"";position:absolute;inset:0;background:#7fd8ff55;pointer-events:none;z-index:5}
+
+  /* ---- kustomisasi karakter ---- */
+  #cust{justify-content:flex-start;align-items:stretch;padding:max(10px,env(safe-area-inset-top)) 14px 10px;gap:0;z-index:10}
+  .cwrap{display:flex;gap:16px;width:100%;max-width:980px;margin:0 auto;height:100%;min-height:0}
+  .cprev{flex:0 0 36%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+  .cprev canvas{width:min(100%,230px);aspect-ratio:1;max-height:42vh}
+  #kname{font-weight:900;font-size:20px}#kdesc{font-size:13px;color:#b9cdf5;min-height:34px}
+  .cbtns{display:flex;gap:10px;width:100%}.cbtns .go{padding:12px 6px;font-size:17px}
+  .scroll{overflow-y:auto;overflow-x:hidden;touch-action:pan-y;flex:1;min-height:0;padding-right:4px;-webkit-overflow-scrolling:touch}
+  .scroll h3{margin:10px 0 6px;font-size:12px;letter-spacing:.14em;color:#9fb6e6;text-transform:uppercase}
+  .grid{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{padding:10px 12px;border-radius:12px;border:2px solid #ffffff22;background:#ffffff0f;color:#fff;font-weight:700;font-size:14px;touch-action:manipulation;min-width:64px}
+  .opt.on{border-color:var(--c,#6ea8ff);background:color-mix(in srgb,var(--c,#6ea8ff) 28%,#0b1630)}
+  .opt.kind{width:calc(33.3% - 6px);display:flex;flex-direction:column;align-items:center;gap:2px}.opt.kind span{font-size:26px}
+  .sw{width:40px;height:40px;border-radius:50%;border:3px solid #ffffff33;touch-action:manipulation;padding:0}
+  .sw.on{border-color:#fff;box-shadow:0 0 0 3px #6ea8ff}
+  @media (orientation:portrait){.cwrap{flex-direction:column}.cprev{flex:none}.cprev canvas{max-height:24vh}}
+  #bk{background:radial-gradient(circle at 35% 30%,#ffd86b,#e8890c)}
+
+  #rot{position:fixed;inset:0;z-index:20;background:#0b1630;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-size:22px;font-weight:800;text-align:center;padding:24px}
+  #rot i{font-size:70px;font-style:normal;animation:r 1.6s ease-in-out infinite}
+  @keyframes r{0%,100%{transform:rotate(0)}50%{transform:rotate(-90deg)}}
+  @media (orientation:portrait){#pad:not(.hidden)~#rot{display:flex}}
+  .flash{animation:fl .8s ease-out}@keyframes fl{0%{box-shadow:inset 0 0 0 100vmax #fff}100%{box-shadow:inset 0 0 0 100vmax #fff0}}
+</style>
+</head>
+<body>
+
+<div id="join" class="screen">
+  <h1>Head <span>Soccer</span></h1>
+  <div style="color:#9fb6e6;font-size:14px;margin-top:-6px">Controller HP</div>
+  <div class="form">
+    <label for="code">Kode room (di layar utama)</label>
+    <input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" inputmode="text" placeholder="ABCD">
+    <label for="name">Nama kamu</label>
+    <input id="name" maxlength="10" autocomplete="off" placeholder="Pemain">
+    <button class="go ghost" id="custBtn">🎨 Karakter &amp; Jurus</button>
+    <button class="go" id="goBtn">MASUK ▶</button>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<div id="pad" class="hidden">
+  <div id="top">
+    <div id="dot"></div><div id="who">…</div>
+    <div id="score">0 – 0<small id="time"></small></div>
+    <button class="tb" id="bPause" title="Jeda">⏸</button>
+    <button class="tb" id="bFull" title="Layar penuh">⛶</button>
+  </div>
+  <div id="msg"></div>
+  <div id="center"></div>
+  <div id="dpad" class="zone"><div id="bl">◀</div><div id="br">▶</div></div>
+  <div id="acts" class="zone">
+    <div class="ab" id="bs"><div><span id="bsi">🔥</span><br>JURUS</div></div>
+    <div class="row">
+      <div class="ab" id="bj"><div><span>⬆</span>LOMPAT</div></div>
+      <div class="ab" id="bk"><div><span>⚽</span>TENDANG</div></div>
+    </div>
+  </div>
+</div>
+<div id="cust" class="screen hidden">
+  <div class="cwrap">
+    <div class="cprev">
+      <canvas id="pv" width="320" height="320"></canvas>
+      <div id="kname"></div><div id="kdesc"></div>
+      <div class="cbtns"><button class="go ghost" id="rand">🎲 Acak</button><button class="go" id="csave">SIMPAN ✓</button></div>
+    </div>
+    <div class="scroll" id="copts">
+      <h3>Jurus spesial</h3><div class="grid" id="gKind"></div>
+      <h3>Warna kulit</h3><div class="grid" id="gSkin"></div>
+      <h3>Gaya rambut</h3><div class="grid" id="gHair"></div>
+      <h3>Warna rambut</h3><div class="grid" id="gHairCol"></div>
+      <h3>Aksesori</h3><div class="grid" id="gAcc"></div>
+      <div style="height:20px"></div>
+    </div>
+  </div>
+</div>
+<div id="rot"><i>📱</i>Putar HP ke mode <br>LANDSCAPE (mendatar)</div>
+
+<script src="char.js"></script>
+<script src="pad.js"></script>
+</body>
+</html>

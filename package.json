@@ -1,0 +1,17 @@
+{
+  "name": "head-soccer",
+  "version": "1.0.0",
+  "description": "Head Soccer - kontrol pakai HP, 1v1 / 2v2 / vs bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.23.0"
+  }
+}
